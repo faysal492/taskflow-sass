@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+
 
 // Config imports
 import appConfig from './config/app.config';
@@ -28,8 +30,13 @@ import { RolesGuard } from './common/guards/roles.guard';
     // TypeORM - PostgreSQL
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) =>
-        configService.get('database'),
+      useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
+        const dbConfig = configService.get<TypeOrmModuleOptions>('database');
+        if (!dbConfig) {
+          throw new Error('Database configuration not found');
+        }
+        return dbConfig;
+      },
     }),
 
     // Mongoose - MongoDB
