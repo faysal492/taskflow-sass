@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class BaseResponseDto {
+export class BaseResponseDto<T> {
   @ApiProperty()
   success: boolean;
 

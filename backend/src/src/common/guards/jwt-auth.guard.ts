@@ -22,7 +22,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err, user, info) {
+  handleRequest(err: Error, user: any, info: any) {
     if (err || !user) {
       throw err || new UnauthorizedException('Invalid token or user not found');
     }

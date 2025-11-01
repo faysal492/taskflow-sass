@@ -7,20 +7,18 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export interface Response {
+export interface Response<T> {
   success: boolean;
   data: T;
   timestamp: string;
 }
 
 @Injectable()
-export class TransformInterceptor
-  implements NestInterceptor>
-{
+export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Observable<Response> {
+  ): Observable<Response<T>> {
     return next.handle().pipe(
       map((data) => ({
         success: true,
