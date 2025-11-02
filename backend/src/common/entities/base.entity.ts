@@ -4,10 +4,11 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   VersionColumn,
+  BaseEntity as TypeOrmBaseEntity,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
-export abstract class BaseEntity {
+export abstract class BaseEntity extends TypeOrmBaseEntity {
   @ApiProperty({ description: 'Unique identifier' })
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -20,10 +21,10 @@ export abstract class BaseEntity {
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
-  @ApiProperty({ description: 'Soft delete timestamp' })
+  @ApiProperty({ description: 'Soft delete timestamp', required: false })
   @DeleteDateColumn({ type: 'timestamp', nullable: true })
-  deletedAt: Date | null;
+  deletedAt?: Date;
 
-  @VersionColumn()
+  @VersionColumn({ default: 1 })
   version: number;
 }

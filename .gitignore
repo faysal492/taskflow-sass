@@ -1,56 +1,215 @@
-# compiled output
-/dist
-/node_modules
-/build
+# Dependencies
+node_modules/
+dist/
+
+# Environment
+.env
+.env.local
+.env.development
+.env.production
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
+Thumbs.db
 
-# Tests
-/coverage
-/.nyc_output
+# Testing
+coverage/
+.nyc_output/
 
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+# Build
+dist/
+build/
+*/dist/
+*/build/
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# Database
+*.sqlite
+*.db
+*/migrations/*.js
+*/migrations/*.d.ts
+*/seeds/*.js
+*/seeds/*.d.ts
+*/data-source.js
+*/data-source.d.ts
+*/ormconfig.json
+*/ormconfig.js
+*/ormconfig.d.ts
+*/ormconfig.ts
+*/typeorm.config.js
+*/typeorm.config.d.ts
+*/typeorm.config.ts
+*/database.config.js
+*/database.config.d.ts
+*/database.config.ts
+*/database.json
+*/database.js
+*/database.d.ts
+*/database.ts
+*/typeorm.ts
+*/typeorm.js
+*/typeorm.d.ts
+*/typeorm.json
+*/database-config.js
+*/database-config.d.ts
+*/database-config.ts
+*/database-config.json
+*/db-config.js
+*/db-config.d.ts
+*/db-config.ts
+*/db-config.json
+*/db.config.js
+*/db.config.d.ts
+*/db.config.ts
+*/db.config.json
+*/db.json
+*/db.js
+*/db.d.ts
+*/db.ts
+*/config.js
+*/config.d.ts
+*/config.ts
+*/config.json
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# temp directory
-.temp
-.tmp
-
-# Runtime data
-pids
+# Misc
+.cache/
+tmp/
+temp/
 *.pid
 *.seed
-*.pid.lock
-
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+*.log
+*/temp/
+*/tmp/
+*/logs/
+*/.cache/
+*.tgz
+*.gz
+*.zip
+*/package-lock.json
+*/yarn.lock
+*/pnpm-lock.yaml
+*/.pnpm-store/
+*/yarn-error.log
+*/lerna-debug.log
+*/npm-debug.log
+*/yarn-debug.log
+*/tsconfig.tsbuildinfo
+*/.eslintcache
+*/.stylelintcache
+*/.parcel-cache/
+*/.nx/
+*/.turbo/
+*/.vercel/
+*/.next/
+*/.nuxt/
+*/.vuepress/
+*/.serverless/
+*/.fusebox/
+*/.dynamodb/
+*/.tern-port
+*/.vscode-test
+*/.yarn/
+*/!.yarn/patches
+*/!.yarn/plugins
+*/!.yarn/releases
+*/!.yarn/sdks
+*/!.yarn/versions
+*/.pnp.*
+*/!.pnp.cjs
+*/!.pnp.loader.mjs
+*/Thumbs.db
+*/ehthumbs.db
+*/Desktop.ini
+*/$RECYCLE.BIN/
+*/*.cab
+*/*.msi
+*/*.msix
+*/*.msm
+*/*.msp
+*/*.lnk
+*/.DS_Store
+*/.AppleDouble
+*/.LSOverride
+*/Icon
+*/._*
+*/.DocumentRevisions-V100
+*/.fseventsd
+*/.Spotlight-V100
+*/.TemporaryItems
+*/.Trashes
+*/.VolumeIcon.icns
+*/.com.apple.timemachine.donotpresent
+*/.AppleDB
+*/.AppleDesktop
+*/Network Trash Folder
+*/Temporary Items
+*/.apdisk
+*/.idea
+*/.vscode
+*/.history
+*/*.swp
+*/*.swo
+*/*~
+*/*.bak
+*/*.orig
+*/*.rej
+*/.project
+*/.classpath
+*/.c9/
+*/.settings/
+*/.loadpath
+*/.recommenders
+*/.metadata
+*/.gradle
+*/build/
+*/.gradle/
+*/.mvn/
+*/target/
+*/.mvn/wrapper/maven-wrapper.jar
+*/.flattened-pom.xml
+*/*.iml
+*/*.ipr
+*/*.iws
+*/.idea_modules/
+*/out/
+*/.idea/
+*/.idea_modules/
+*/atlassian-ide-plugin.xml
+*/.project
+*/.classpath
+*/.c9/
+*/.settings/
+*/.loadpath
+*/.recommenders
+*/.metadata/
+*/.gradle/
+*/build/
+*/.mvn/
+*/target/
+*/.mvn/wrapper/maven-wrapper.jar
+*/.flattened-pom.xml
+*/*.iml
+*/*.ipr
+*/*.iws
+*/.idea_modules/
+*/out/
+*/.idea/
+*/.idea_modules/
+*/atlassian-ide-plugin.xml
+*/.project
+*/.classpath
+*/.c9/
+*/.settings/
+*/.loadpath
+*/.recommenders
