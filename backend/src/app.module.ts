@@ -17,6 +17,7 @@ import { validationSchema } from './config/validation.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AuthModule } from './modules/auth/auth.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -60,6 +61,8 @@ import { AuthModule } from './modules/auth/auth.module';
     }),
 
     AuthModule,
+
+    TasksModule,
 
     // Feature modules (to be added)
     // AuthModule,
