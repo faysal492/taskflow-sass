@@ -18,11 +18,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "cross-env NODE_OPTIONS='-r ts-node/register -r tsconfig-paths/register -r reflect-metadata' typeorm -d src/database/data-source.ts", "typeorm:migration:generate": "npm run typeorm migration:generate",
-    "migration:generate": "npm run typeorm -- migration:generate -d src/database/data-source.ts",
-    "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
-    "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
-    "seed:run": "ts-node src/database/seeds/run-seed.ts"
+    "typeorm": "cross-env NODE_OPTIONS='-r ts-node/register -r tsconfig-paths/register -r reflect-metadata' typeorm -d src/database/data-source.ts",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:generate": "npm run typeorm -- migration:generate",
+    "seed:run": "ts-node -r tsconfig-paths/register -r reflect-metadata src/database/seeds/run-seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

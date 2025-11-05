@@ -39,7 +39,7 @@ export class Tenant extends BaseEntity {
 
   @ApiProperty({ description: 'Trial end date', required: false })
   @Column({ type: 'timestamp', nullable: true })
-  trialEndsAt?: Date;
+  trialEndsAt?: Date | null ;
 
   @ApiProperty({ description: 'Is tenant active' })
   @Column({ type: 'boolean', default: true })
