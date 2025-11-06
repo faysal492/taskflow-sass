@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventType } from '@common/events/event-types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TasksRepository } from './tasks.repository';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -15,7 +16,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '@modules/projects/entities/project.entity';
 import { User } from '@modules/users/entities/user.entity';
-
+import {
+  TaskCreatedEvent,
+  TaskStatusChangedEvent,
+  TaskAssignedEvent,
+} from '@common/events/event-payloads.interface';
 
 @Injectable()
 export class TasksService {
@@ -65,13 +70,28 @@ export class TasksService {
     });
 
     // Emit event for notifications
-    this.eventEmitter.emit('task.created', {
+    const event: TaskCreatedEvent = {
       task,
       tenantId,
       userId,
-    });
+      timestamp: new Date(),
+    };
 
-    return this.tasksRepository.findById(task.id, tenantId);
+    this.eventEmitter.emit('TASK_CREATED', event);
+
+
+    if (task.assigneeId && task.assigneeId !== userId) {
+      const assignedEvent: TaskAssignedEvent = {
+        task,
+        assignee: task.assignee!,
+        assignedBy: task.creator,
+        tenantId,
+        timestamp: new Date(),
+      };
+      this.eventEmitter.emit(EventType.TASK_ASSIGNED, assignedEvent);
+    }
+
+    return task;
   }
 
   async findAll(
@@ -108,41 +128,48 @@ export class TasksService {
     updateTaskDto: UpdateTaskDto,
   ): Promise<Task> {
     const task = await this.findOne(id, tenantId);
-
-    // Check if assignee is being changed and validate
-    if (updateTaskDto.assigneeId) {
-      const assignee = await this.userRepository.findOne({
-        where: { id: updateTaskDto.assigneeId, tenantId, isActive: true },
-      });
-
-      if (!assignee) {
-        throw new BadRequestException('Assignee not found or inactive');
-      }
-    }
-
-    // Track old status for event
     const oldStatus = task.status;
+    const oldAssigneeId = task.assigneeId;
 
     // Update task
-    const updatedTask = await this.tasksRepository.update(id, tenantId, updateTaskDto);
-
-    // Emit events
-    this.eventEmitter.emit('task.updated', {
-      task: updatedTask,
-      oldStatus,
+    const updatedTask = await this.tasksRepository.update(
+      id,
       tenantId,
-      userId,
-    });
+      updateTaskDto,
+    );
 
+    // Status changed event
     if (oldStatus !== updatedTask.status) {
-      this.eventEmitter.emit('task.status.changed', {
+      const statusEvent: TaskStatusChangedEvent = {
         task: updatedTask,
         oldStatus,
         newStatus: updatedTask.status,
         tenantId,
         userId,
-      });
+        timestamp: new Date(),
+      };
+      this.eventEmitter.emit(EventType.TASK_STATUS_CHANGED, statusEvent);
     }
+
+    // Assignee changed event
+    if (oldAssigneeId !== updatedTask.assigneeId && updatedTask.assignee) {
+      const assignedEvent: TaskAssignedEvent = {
+        task: updatedTask,
+        assignee: updatedTask.assignee,
+        assignedBy: updatedTask.creator,
+        tenantId,
+        timestamp: new Date(),
+      };
+      this.eventEmitter.emit(EventType.TASK_ASSIGNED, assignedEvent);
+    }
+
+    // Generic update event
+    this.eventEmitter.emit(EventType.TASK_UPDATED, {
+      task: updatedTask,
+      tenantId,
+      userId,
+      timestamp: new Date(),
+    });
 
     return updatedTask;
   }
