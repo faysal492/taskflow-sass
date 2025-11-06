@@ -17,6 +17,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AppService } from './app.service';
     AuthModule,
     TasksModule,
     ProjectsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [
