@@ -25,6 +25,7 @@ import { OutboxModule } from './modules/outbox/outbox.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { DlqModule } from './modules/dlq/dlq.module';
+import { EventStoreModule } from './modules/event-store/event-store.module';
 
 
 @Module({
@@ -68,6 +69,7 @@ import { DlqModule } from './modules/dlq/dlq.module';
     WebhooksModule,
     InboxModule,
     DlqModule,
+    EventStoreModule,
   ],
   controllers: [AppController],
   providers: [
