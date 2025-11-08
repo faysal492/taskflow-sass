@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -18,6 +19,11 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuditModule } from './modules/audit/audit.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { RabbitmqService } from './common/rabbitmq/rabbitmq.service';
+import { OutboxModule } from './modules/outbox/outbox.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+
 
 @Module({
   imports: [
@@ -38,6 +44,12 @@ import { AuditModule } from './modules/audit/audit.module';
         };
       },
     }),
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI')!
+      })
+    }),
 
     EventEmitterModule.forRoot({
       wildcard: true,
@@ -49,6 +61,9 @@ import { AuditModule } from './modules/audit/audit.module';
     TasksModule,
     ProjectsModule,
     AuditModule,
+    NotificationsModule,
+    OutboxModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [
@@ -61,6 +76,7 @@ import { AuditModule } from './modules/audit/audit.module';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    RabbitmqService,
   ],
 })
 export class AppModule {}

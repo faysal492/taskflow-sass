@@ -18,8 +18,8 @@ export interface CreateAuditLogDto {
 @Injectable()
 export class AuditService {
   constructor(
-    @InjectModel(AuditLog.name, 'postgres')
-    private auditLogModel: Model<AuditLogDocument>,
+    @InjectModel(AuditLog.name)
+    private auditLogModel: Model<AuditLog>,
   ) {}
 
   async log(dto: CreateAuditLogDto): Promise<AuditLogDocument> {
