@@ -25,7 +25,9 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('Analytics', 'Analytics and reports')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    deepScanRoutes: true,
+  });
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
