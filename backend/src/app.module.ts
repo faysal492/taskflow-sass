@@ -23,6 +23,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { RabbitmqService } from './common/rabbitmq/rabbitmq.service';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { InboxModule } from './modules/inbox/inbox.module';
+import { DlqModule } from './modules/dlq/dlq.module';
 
 
 @Module({
@@ -64,6 +66,8 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     NotificationsModule,
     OutboxModule,
     WebhooksModule,
+    InboxModule,
+    DlqModule,
   ],
   controllers: [AppController],
   providers: [
