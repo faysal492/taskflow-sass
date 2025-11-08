@@ -26,6 +26,8 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { DlqModule } from './modules/dlq/dlq.module';
 import { EventStoreModule } from './modules/event-store/event-store.module';
+import { RealtimeGateway } from './modules/realtime/realtime/realtime.gateway';
+import { RealtimeModule } from './modules/realtime/realtime/realtime.module';
 
 
 @Module({
@@ -70,6 +72,7 @@ import { EventStoreModule } from './modules/event-store/event-store.module';
     InboxModule,
     DlqModule,
     EventStoreModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [
@@ -83,6 +86,7 @@ import { EventStoreModule } from './modules/event-store/event-store.module';
       useClass: RolesGuard,
     },
     RabbitmqService,
+    RealtimeGateway,
   ],
 })
 export class AppModule {}
