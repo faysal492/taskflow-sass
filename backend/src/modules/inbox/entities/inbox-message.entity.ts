@@ -2,10 +2,8 @@ import { Entity, Column, Index } from 'typeorm';
 import { BaseEntity } from '@common/entities/base.entity';
 
 @Entity('inbox_messages')
-@Index(['messageId'], { unique: true })
 export class InboxMessage extends BaseEntity {
   @Column({ type: 'varchar', unique: true })
-  @Index()
   messageId: string; // Unique message identifier
 
   @Column({ type: 'varchar' })
