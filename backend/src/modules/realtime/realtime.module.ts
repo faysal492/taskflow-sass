@@ -5,15 +5,16 @@ import { RealtimeGateway } from './realtime.gateway';
 
 @Module({
   imports: [
+    // This makes JwtService available to RealtimeGateway within this module
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET'),
       }),
     }),
   ],
   providers: [RealtimeGateway],
-  exports: [RealtimeGateway],
+  exports: [RealtimeGateway], // export only if other modules need the gateway
 })
 export class RealtimeModule {}

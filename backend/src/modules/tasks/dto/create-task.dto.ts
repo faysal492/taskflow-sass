@@ -29,12 +29,12 @@ export class CreateTaskDto {
   @ApiProperty({ description: 'Task status', enum: TaskStatus })
   @IsEnum(TaskStatus)
   @IsOptional()
-  status?: TaskStatus = TaskStatus.TODO;
+  status?: TaskStatus;
 
   @ApiProperty({ description: 'Task priority', enum: Priority })
   @IsEnum(Priority)
   @IsOptional()
-  priority?: Priority = Priority.MEDIUM;
+  priority?: Priority;
 
   @ApiProperty({ description: 'Project ID' })
   @IsUUID()

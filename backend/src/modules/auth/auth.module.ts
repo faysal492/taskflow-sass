@@ -14,6 +14,7 @@ import { Tenant } from '@modules/tenants/entities/tenant.entity';
     TypeOrmModule.forFeature([User, Tenant]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
+      global: true,
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

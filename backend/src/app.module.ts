@@ -26,8 +26,9 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { DlqModule } from './modules/dlq/dlq.module';
 import { EventStoreModule } from './modules/event-store/event-store.module';
-import { RealtimeGateway } from './modules/realtime/realtime/realtime.gateway';
-import { RealtimeModule } from './modules/realtime/realtime/realtime.module';
+import { RealtimeGateway } from './modules/realtime/realtime.gateway';
+import { RealtimeModule } from './modules/realtime/realtime.module';
+import { SagaModule } from './modules/saga/saga.module';
 
 
 @Module({
@@ -38,7 +39,7 @@ import { RealtimeModule } from './modules/realtime/realtime/realtime.module';
       validationSchema,
       envFilePath: ['.env'],
     }),
-
+    RealtimeModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
@@ -73,6 +74,7 @@ import { RealtimeModule } from './modules/realtime/realtime/realtime.module';
     DlqModule,
     EventStoreModule,
     RealtimeModule,
+    SagaModule,
   ],
   controllers: [AppController],
   providers: [
