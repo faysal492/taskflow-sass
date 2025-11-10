@@ -21,6 +21,7 @@ import { Public } from '@common/decorators/public.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { User } from '@modules/users/entities/user.entity';
 import { Auth } from 'typeorm';
+import { RateLimit } from '@common/guards/rate-limit.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -29,6 +30,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @RateLimit({ limit: 3, ttl: 3600, keyPrefix: 'register' }) // 3 registrations per hour
   @ApiOperation({ summary: 'Register new user and organization' })
   @ApiResponse({
     status: 201,
@@ -44,6 +46,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 5, ttl: 300, keyPrefix: 'login' }) // 5 attempts per 5 minutes
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({
     status: 200,
