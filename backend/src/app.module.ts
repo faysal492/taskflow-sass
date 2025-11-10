@@ -29,6 +29,7 @@ import { EventStoreModule } from './modules/event-store/event-store.module';
 import { RealtimeGateway } from './modules/realtime/realtime.gateway';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { SagaModule } from './modules/saga/saga.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 
 @Module({
@@ -75,6 +76,7 @@ import { SagaModule } from './modules/saga/saga.module';
     EventStoreModule,
     RealtimeModule,
     SagaModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
