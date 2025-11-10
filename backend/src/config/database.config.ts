@@ -1,4 +1,4 @@
-import { registerAs } from "@nestjs/config";
+import { registerAs } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 export default registerAs(
@@ -11,10 +11,24 @@ export default registerAs(
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_NAME,
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: process.env.NODE_ENV === 'development',
-    logging: process.env.NODE_ENV === 'development',
-    migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
-    migrationsRun: true,
+    synchronize: false,
+    logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : false,
+    
+    // Connection pooling for performance
+    extra: {
+      max: 20, // Maximum pool size
+      min: 5, // Minimum pool size
+      idleTimeoutMillis: 30000, // Close idle connections after 30s
+      connectionTimeoutMillis: 5000, // Timeout for acquiring connection
+    },
+    
+    // Connection retry
+    retryAttempts: 3,
+    retryDelay: 3000,
+    
+    // Query performance
+    maxQueryExecutionTime: 1000, // Log slow queries (>1s)
+    
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   }),
 );
