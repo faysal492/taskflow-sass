@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Between, LessThan, In } from 'typeorm';
+import { Repository, FindOptionsWhere, Between, LessThan, In, SelectQueryBuilder } from 'typeorm';
 import { Task } from './entities/task.entity';
-import { Tenant } from '@modules/tenants/entities/tenant.entity';
 import { FilterTaskDto } from './dto/filter-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
@@ -17,94 +16,12 @@ export class TasksRepository {
     tenantId: string,
     filters: FilterTaskDto,
   ): Promise<[Task[], number]> {
-    const {
-      status,
-      priority,
-      projectId,
-      assigneeId,
-      dueDateFrom,
-      dueDateTo,
-      tags,
-      overdue,
-      search,
-      page = 1,
-      limit = 10,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC',
-    } = filters;
-
-    const query = this.repository
-      .createQueryBuilder('task')
-      .leftJoinAndSelect('task.assignee', 'assignee')
-      .leftJoinAndSelect('task.creator', 'creator')
-      .leftJoinAndSelect('task.project', 'project')
-      .where('task.tenantId = :tenantId', { tenantId });
-
-    // Apply filters
-    if (status) {
-      query.andWhere('task.status = :status', { status });
-    }
-
-    if (priority) {
-      query.andWhere('task.priority = :priority', { priority });
-    }
-
-    if (projectId) {
-      query.andWhere('task.projectId = :projectId', { projectId });
-    }
-
-    if (assigneeId) {
-      query.andWhere('task.assigneeId = :assigneeId', { assigneeId });
-    }
-
-    if (dueDateFrom || dueDateTo) {
-      if (dueDateFrom && dueDateTo) {
-        query.andWhere('task.dueDate BETWEEN :dueDateFrom AND :dueDateTo', {
-          dueDateFrom,
-          dueDateTo,
-        });
-      } else if (dueDateFrom) {
-        query.andWhere('task.dueDate >= :dueDateFrom', { dueDateFrom });
-      } else if (dueDateTo) {
-        query.andWhere('task.dueDate <= :dueDateTo', { dueDateTo });
-      }
-    }
-
-    if (tags && tags.length > 0) {
-      query.andWhere('task.tags && ARRAY[:...tags]::varchar[]', { tags });
-    }
-
-    if (overdue) {
-      query.andWhere('task.dueDate < :now', { now: new Date() });
-      query.andWhere('task.status != :completedStatus', {
-        completedStatus: 'COMPLETED',
-      });
-    }
-
-    if (search) {
-      query.andWhere(
-        '(task.title ILIKE :search OR task.description ILIKE :search)',
-        { search: `%${search}%` },
-      );
-    }
-
-    // Sorting
-    const allowedSortFields = [
-      'createdAt',
-      'updatedAt',
-      'title',
-      'status',
-      'priority',
-      'dueDate',
-    ];
-    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
-    query.orderBy(`task.${sortField}`, sortOrder);
-
-    // Pagination
-    const skip = (page - 1) * limit;
-    query.skip(skip).take(limit);
-
-    return query.getManyAndCount();
+    const query = this.buildOptimizedQuery(tenantId, filters);
+    
+    // Use querybuilder for complex queries with proper indexing
+    const [tasks, total] = await query.getManyAndCount();
+    
+    return [tasks, total];
   }
 
   async findById(id: string, tenantId: string): Promise<Task> {
@@ -160,5 +77,121 @@ export class TasksRepository {
       relations: ['assignee', 'project'],
       order: { dueDate: 'ASC' },
     });
+  }
+
+  private buildOptimizedQuery(
+    tenantId: string,
+    filters: FilterTaskDto,
+  ): SelectQueryBuilder<Task> {
+    const {
+      status,
+      priority,
+      projectId,
+      assigneeId,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = filters;
+
+    const query = this.repository
+      .createQueryBuilder('task')
+      .where('task.tenantId = :tenantId', { tenantId })
+      .andWhere('task.deletedAt IS NULL');
+
+    // Apply filters (uses indexes)
+    if (status) {
+      query.andWhere('task.status = :status', { status });
+    }
+
+    if (priority) {
+      query.andWhere('task.priority = :priority', { priority });
+    }
+
+    if (projectId) {
+      query.andWhere('task.projectId = :projectId', { projectId });
+    }
+
+    if (assigneeId) {
+      query.andWhere('task.assigneeId = :assigneeId', { assigneeId });
+    }
+
+    // Full-text search (uses GIN index)
+    if (search) {
+      query.andWhere(
+        `to_tsvector('english', task.title || ' ' || COALESCE(task.description, '')) @@ plainto_tsquery('english', :search)`,
+        { search },
+      );
+    }
+
+    // Only load relations if needed (reduces data transfer)
+    if (!filters.minimal)
+       {
+      query
+        .leftJoinAndSelect('task.assignee', 'assignee')
+        .leftJoinAndSelect('task.project', 'project')
+        .leftJoinAndSelect('task.creator', 'creator');
+    } else {
+      // Minimal mode: only essential fields
+      query.select([
+        'task.id',
+        'task.title',
+        'task.status',
+        'task.priority',
+        'task.dueDate',
+      ]);
+    }
+
+    // Sorting with index support
+    const allowedSortFields: { [key: string]: string } = {
+      createdAt: 'task.createdAt',
+      updatedAt: 'task.updatedAt',
+      title: 'task.title',
+      status: 'task.status',
+      priority: 'task.priority',
+      dueDate: 'task.dueDate',
+    };
+
+    const sortField = allowedSortFields[sortBy] || allowedSortFields.createdAt;
+    query.orderBy(sortField, sortOrder);
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    query.skip(skip).take(limit);
+
+    return query;
+  }
+
+  /**
+   * Bulk operations for better performance
+   */
+  async bulkUpdate(ids: string[], tenantId: string, updates: Partial<Task>): Promise<void> {
+    await this.repository
+      .createQueryBuilder()
+      .update(Task)
+      .set(updates)
+      .where('id IN (:...ids)', { ids })
+      .andWhere('tenantId = :tenantId', { tenantId })
+      .execute();
+  }
+
+  /**
+   * Efficient count query
+   */
+  async countByStatus(tenantId: string): Promise<Record<string, number>> {
+    const results = await this.repository
+      .createQueryBuilder('task')
+      .select('task.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .where('task.tenantId = :tenantId', { tenantId })
+      .andWhere('task.deletedAt IS NULL')
+      .groupBy('task.status')
+      .getRawMany();
+
+    return results.reduce((acc, { status, count }) => {
+      acc[status] = parseInt(count, 10);
+      return acc;
+    }, {});
   }
 }

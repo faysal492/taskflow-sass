@@ -46,4 +46,9 @@ export class FilterTaskDto extends SearchQueryDto {
   @IsOptional()
   @Type(() => Boolean)
   overdue?: boolean;
+
+  @ApiPropertyOptional({ description: 'Show only minimal tasks' })
+  @IsOptional()
+  @Type(() => Boolean)
+  minimal?: boolean;
 }
