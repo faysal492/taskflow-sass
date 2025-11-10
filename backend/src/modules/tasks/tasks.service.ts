@@ -1,9 +1,11 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
+  Logger,
   BadRequestException,
 } from '@nestjs/common';
+import { CacheService } from '@common/cache/cache.service';
+import { CacheKeys, CacheTTL } from '@common/cache/cache-keys';
 import { EventType } from '@common/events/event-types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TasksRepository } from './tasks.repository';
@@ -24,8 +26,10 @@ import {
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
   constructor(
     private readonly tasksRepository: TasksRepository,
+    private readonly cacheService: CacheService,
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(User)
@@ -38,6 +42,7 @@ export class TasksService {
     userId: string,
     createTaskDto: CreateTaskDto,
   ): Promise<Task> {
+
     const { projectId, assigneeId, ...taskData } = createTaskDto;
 
     // Validate project belongs to tenant
@@ -77,7 +82,7 @@ export class TasksService {
       timestamp: new Date(),
     };
 
-    this.eventEmitter.emit('TASK_CREATED', event);
+    this.eventEmitter.emit(EventType.TASK_CREATED, event);
 
 
     if (task.assigneeId && task.assigneeId !== userId) {
@@ -91,6 +96,19 @@ export class TasksService {
       this.eventEmitter.emit(EventType.TASK_ASSIGNED, assignedEvent);
     }
 
+    // Invalidate related caches
+    await this.invalidateTaskCaches(tenantId, task.projectId, task.assigneeId ?? '');
+
+    // Cache the new task
+    await this.cacheService.set(
+      CacheKeys.task(task.id),
+      task,
+      CacheTTL.MEDIUM,
+    );
+
+    // Emit event
+    this.eventEmitter.emit('task.created', { task, tenantId, userId });
+
     return task;
   }
 
@@ -98,27 +116,44 @@ export class TasksService {
     tenantId: string,
     filters: FilterTaskDto,
   ): Promise<PaginatedResponseDto<Task>> {
-    const [tasks, total] = await this.tasksRepository.findAllWithFilters(
-      tenantId,
-      filters,
-    );
+    // Create cache key based on filters
+    const filterKey = JSON.stringify(filters);
+    const cacheKey = CacheKeys.taskList(tenantId, filterKey);
 
-    return new PaginatedResponseDto(
-      tasks,
-      total,
-      filters.page || 1,
-      filters.limit || 10,
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        this.logger.debug(`Fetching tasks for tenant ${tenantId} from database`);
+        const [tasks, total] = await this.tasksRepository.findAllWithFilters(
+          tenantId,
+          filters,
+        );
+        return new PaginatedResponseDto(
+          tasks,
+          total,
+          filters.page || 1,
+          filters.limit || 10,
+        );
+      },
+      CacheTTL.SHORT, // Shorter TTL for list queries
     );
   }
 
   async findOne(id: string, tenantId: string): Promise<Task> {
-    const task = await this.tasksRepository.findById(id, tenantId);
-
-    if (!task) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
-    }
-
-    return task;
+    const cacheKey = CacheKeys.task(id);
+    
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        this.logger.debug(`Fetching task ${id} from database`);
+        const task = await this.tasksRepository.findById(id, tenantId);
+        if (!task) {
+          throw new NotFoundException(`Task with ID ${id} not found`);
+        }
+        return task;
+      },
+      CacheTTL.MEDIUM,
+    );
   }
 
   async update(
@@ -171,6 +206,24 @@ export class TasksService {
       timestamp: new Date(),
     });
 
+    // Update cache
+    await this.cacheService.set(
+      CacheKeys.task(id),
+      updatedTask,
+      CacheTTL.MEDIUM,
+    );
+
+    // Invalidate related caches
+    await this.invalidateTaskCaches(
+      tenantId,
+      task.projectId,
+      task.assigneeId ?? '',
+      updateTaskDto.assigneeId ?? '',
+    );
+
+    // Emit events
+    this.eventEmitter.emit('task.updated', { task: updatedTask, tenantId, userId });
+
     return updatedTask;
   }
 
@@ -183,17 +236,27 @@ export class TasksService {
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
 
+    // Remove from cache
+    await this.cacheService.del(CacheKeys.task(id));
+    // Invalidate related caches
+    await this.invalidateTaskCaches(tenantId, task.projectId, task.assigneeId || '');
     // Emit event
-    this.eventEmitter.emit('task.deleted', {
-      taskId: id,
-      task,
-      tenantId,
-      userId,
-    });
+    this.eventEmitter.emit('task.deleted', { taskId: id, task, tenantId, userId });
   }
 
-  async getStatsByStatus(tenantId: string, projectId?: string) {
-    return this.tasksRepository.getStatsByStatus(tenantId, projectId);
+ async getStatsByStatus(tenantId: string, projectId?: string) {
+    const cacheKey = projectId
+      ? `${CacheKeys.taskStats(tenantId)}:${projectId}`
+      : CacheKeys.taskStats(tenantId);
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        this.logger.debug(`Fetching task stats for tenant ${tenantId} from database`);
+        return this.tasksRepository.getStatsByStatus(tenantId, projectId);
+      },
+      CacheTTL.MEDIUM,
+    );
   }
 
   async getOverdueTasks(tenantId: string): Promise<Task[]> {
@@ -207,5 +270,33 @@ export class TasksService {
     status: string,
   ): Promise<Task> {
     return this.update(id, tenantId, userId, { status } as any);
+  }
+
+  /**
+   * Invalidate all caches related to tasks
+   */
+  private async invalidateTaskCaches(
+    tenantId: string,
+    projectId?: string,
+    ...userIds: string[]
+  ): Promise<void> {
+    const keysToDelete = [
+      CacheKeys.taskList(tenantId, '*'), // All task lists for tenant
+      CacheKeys.taskStats(tenantId), // Task statistics
+      CacheKeys.dashboard(tenantId), // Dashboard cache
+    ];
+
+    if (projectId) {
+      keysToDelete.push(CacheKeys.tasksByProject(projectId));
+    }
+
+    userIds.filter(Boolean).forEach((userId) => {
+      keysToDelete.push(CacheKeys.tasksByAssignee(userId));
+      keysToDelete.push(CacheKeys.dashboard(tenantId, userId));
+    });
+
+    await Promise.all(keysToDelete.map((key) => this.cacheService.delPattern(key)));
+    
+    this.logger.debug(`Invalidated ${keysToDelete.length} cache patterns`);
   }
 }

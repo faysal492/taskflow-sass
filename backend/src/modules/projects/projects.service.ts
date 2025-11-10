@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { CacheService } from '@common/cache/cache.service';
+import { CacheKeys, CacheTTL } from '@common/cache/cache-keys';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
@@ -10,6 +12,7 @@ export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
+    private cacheService: CacheService,
   ) {}
 
   async create(
@@ -36,24 +39,41 @@ export class ProjectsService {
   }
 
   async findAll(tenantId: string): Promise<Project[]> {
-    return this.projectRepository.find({
-      where: { tenantId },
-      relations: ['owner', 'tasks'],
-      order: { createdAt: 'DESC' },
-    });
+    const cacheKey = CacheKeys.projectList(tenantId);
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        return this.projectRepository.find({
+          where: { tenantId },
+          relations: ['owner'],
+          order: { createdAt: 'DESC' },
+        });
+      },
+      CacheTTL.MEDIUM,
+    );
   }
 
+
   async findOne(id: string, tenantId: string): Promise<Project> {
-    const project = await this.projectRepository.findOne({
-      where: { id, tenantId },
-      relations: ['owner', 'tasks'],
-    });
+    const cacheKey = CacheKeys.project(id);
 
-    if (!project) {
-      throw new NotFoundException(`Project with ID ${id} not found`);
-    }
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const project = await this.projectRepository.findOne({
+          where: { id, tenantId },
+          relations: ['owner', 'tasks'],
+        });
 
-    return project;
+        if (!project) {
+          throw new NotFoundException(`Project with ID ${id} not found`);
+        }
+
+        return project;
+      },
+      CacheTTL.LONG, // Projects change less frequently
+    );
   }
 
   async update(
@@ -62,8 +82,11 @@ export class ProjectsService {
     updateProjectDto: UpdateProjectDto,
   ): Promise<Project> {
     await this.findOne(id, tenantId);
-
     await this.projectRepository.update({ id, tenantId }, updateProjectDto);
+
+    // Invalidate caches
+    await this.cacheService.del(CacheKeys.project(id));
+    await this.cacheService.del(CacheKeys.projectList(tenantId));
 
     return this.findOne(id, tenantId);
   }
