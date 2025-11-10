@@ -29,7 +29,8 @@ import { EventStoreModule } from './modules/event-store/event-store.module';
 import { RealtimeGateway } from './modules/realtime/realtime.gateway';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { SagaModule } from './modules/saga/saga.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { CacheModule } from '@common/cache/cache.module';
+
 
 
 @Module({
@@ -76,7 +77,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     EventStoreModule,
     RealtimeModule,
     SagaModule,
-    DashboardModule,
+    CacheModule
   ],
   controllers: [AppController],
   providers: [
@@ -90,7 +91,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
       useClass: RolesGuard,
     },
     RabbitmqService,
-    RealtimeGateway,
+    RealtimeGateway
   ],
 })
 export class AppModule {}
